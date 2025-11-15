@@ -1,81 +1,164 @@
-// ==== Referencias a los botones ====
-const btnguardar = document.getElementById("btnguardar");
-const btnver = document.getElementById("btnver");
-const btnlimpiar = document.getElementById("btnlimpiar");
-const btnborrar = document.getElementById("btnborrar");
+// ====== REFERENCIAS A LOS BOTONES ======
+const btnGuardar = document.getElementById("btnGuardar");
+const btnVer = document.getElementById("btnVer");
+const btnLimpiar = document.getElementById("btnLimpiar");
+const btnBorrar = document.getElementById("btnBorrar");
 
-// ==== Función para limpiar el formulario ====
+// ==== FUNCION PARA LIMPIAR FORMULARIO ====
 function limpiarFormulario() {
   document.getElementById("nombre").value = "";
   document.getElementById("email").value = "";
   document.getElementById("edad").value = "";
-  document.getElementById("nombreError").textContent = "";
-  document.getElementById("emailError").textContent = "";
-  document.getElementById("edadError").textContent = "";
 }
 
-// ==== Guardar datos ====
-btnguardar.addEventListener("click", () => {
-  // Obtener valores del formulario
+// ==== GUARDAR DATOS ====
+btnGuardar.addEventListener("click", () => {
+  document.querySelectorAll(".error").forEach((e) => (e.textContent = ""));
+
   const nombre = document.getElementById("nombre").value.trim();
   const email = document.getElementById("email").value.trim();
   const edad = document.getElementById("edad").value.trim();
 
   let valido = true;
 
-  // ==== Validaciones ====
   if (nombre === "") {
-    document.getElementById("nombreError").textContent = "El nombre es obligatorio.";
+    document.getElementById("error-nombre").textContent =
+      "El nombre es obligatorio.";
     valido = false;
-  } else {
-    document.getElementById("nombreError").textContent = "";
   }
 
-  if (email === "" || !email.includes("@")) {
-    document.getElementById("emailError").textContent = "Ingrese un correo válido.";
+  if (email === "") {
+    document.getElementById("error-email").textContent =
+      "El email es obligatorio.";
     valido = false;
-  } else {
-    document.getElementById("emailError").textContent = "";
+  } else if (!email.includes("@") || !email.includes(".")) {
+    document.getElementById("error-email").textContent =
+      "Ingrese un email válido.";
+    valido = false;
   }
 
-  if (edad === "" || isNaN(edad) || edad < 1 || edad > 120) {
-    document.getElementById("edadError").textContent = "Ingrese una edad válida.";
+  if (edad === "") {
+    document.getElementById("error-edad").textContent =
+      "La edad es obligatoria.";
     valido = false;
-  } else {
-    document.getElementById("edadError").textContent = "";
+  } else if (isNaN(edad) || edad <= 0) {
+    document.getElementById("error-edad").textContent =
+      "Ingrese una edad válida.";
+    valido = false;
   }
 
-  // ==== Si todo está bien, guardar en localStorage ====
   if (valido) {
     const usuario = { nombre, email, edad };
-    localStorage.setItem("usuario", JSON.stringify(usuario));
-    alert("Datos guardados correctamente");
+    let listaUsuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    listaUsuarios.push(usuario);
+    localStorage.setItem("usuarios", JSON.stringify(listaUsuarios));
+    alert("✅ Datos guardados correctamente en LocalStorage.");
     limpiarFormulario();
+
+    // Si la lista de usuarios está visible, refrescarla automáticamente
+    const resultado = document.getElementById("resultado");
+    if (resultado.style.display === "block") {
+      mostrarUsuarios(); // función que actualiza el DOM
+    }
   }
 });
 
-// ==== Ver datos guardados ====
-btnver.addEventListener("click", () => {
-  const usuarioGuardado = localStorage.getItem("usuario");
+// ==== FUNCIÓN PARA MOSTRAR USUARIOS ====
+function mostrarUsuarios() {
+  const resultado = document.getElementById("resultado");
+  const usuariosGuardados = JSON.parse(localStorage.getItem("usuarios")) || [];
 
-  if (usuarioGuardado) {
-    const usuario = JSON.parse(usuarioGuardado);
-    document.getElementById("resultado").innerHTML = `
-      <p><strong>Nombre:</strong> ${usuario.nombre}</p>
-      <p><strong>Email:</strong> ${usuario.email}</p>
-      <p><strong>Edad:</strong> ${usuario.edad}</p>
-    `;
+  if (usuariosGuardados.length === 0) {
+    alert("No hay usuarios guardados.");
+    resultado.style.display = "none";
+    resultado.innerHTML = "";
+    btnVer.textContent = "Ver Datos";
+    return;
+  }
+
+  let html = "<h3>Usuarios Guardados:</h3>";
+  usuariosGuardados.forEach((u, i) => {
+    html += `
+            <div class="usuario" data-index="${i}">
+                <p><strong>Usuario #${i + 1}</strong></p>
+                <p><strong>Nombre:</strong> ${u.nombre}</p>
+                <p><strong>Email:</strong> ${u.email}</p>
+                <p><strong>Edad:</strong> ${u.edad}</p>
+                <button class="btn-borrar-individual" data-index="${i}">Borrar Usuario</button>
+            </div>
+            <hr>
+        `;
+  });
+
+  resultado.innerHTML = html;
+  resultado.style.display = "block";
+  btnVer.textContent = "Ocultar Datos";
+
+  // Botones de borrar individual
+  const botonesBorrar = document.querySelectorAll(".btn-borrar-individual");
+  botonesBorrar.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      const index = parseInt(e.target.getAttribute("data-index"));
+      usuariosGuardados.splice(index, 1);
+      localStorage.setItem("usuarios", JSON.stringify(usuariosGuardados));
+      mostrarUsuarios(); // refresca la lista automáticamente
+      alert("✅ Usuario eliminado.");
+    });
+  });
+}
+
+// ==== BOTÓN VER/OCULTAR DATOS ====
+btnVer.addEventListener("click", () => {
+  const resultado = document.getElementById("resultado");
+
+  if (resultado.style.display === "block") {
+    // Ocultar lista
+    resultado.style.display = "none";
+    resultado.innerHTML = "";
+    btnVer.textContent = "Ver Datos";
   } else {
-    alert("No hay datos guardados.");
+    mostrarUsuarios(); // Mostrar lista
   }
 });
 
-// ==== Limpiar formulario ====
-btnlimpiar.addEventListener("click", limpiarFormulario);
+// ==== LIMPIAR FORMULARIO ====
+btnLimpiar.addEventListener("click", () => {
+  const nombre = document.getElementById("nombre").value;
+  const email = document.getElementById("email").value;
+  const edad = document.getElementById("edad").value;
 
-// ==== Borrar datos de localStorage ====
-btnborrar.addEventListener("click", () => {
-  localStorage.removeItem("usuario");
+  const errores = [...document.querySelectorAll(".error")];
+  const hayErrores = errores.some((e) => e.textContent.trim() !== "");
+
+  const todoVacio =
+    nombre.trim() === "" &&
+    email.trim() === "" &&
+    edad.trim() === "" &&
+    !hayErrores;
+
+  if (todoVacio) {
+    alert("No hay nada que limpiar.");
+    return;
+  }
+
+  limpiarFormulario();
+  errores.forEach((e) => (e.textContent = ""));
+  alert("Formulario limpiado.");
+});
+
+// ==== BORRAR TODOS LOS DATOS DE LOCALSTORAGE ====
+btnBorrar.addEventListener("click", () => {
+  const usuarios = JSON.parse(localStorage.getItem("usuarios"));
+
+  if (!usuarios || usuarios.length === 0) {
+    alert("⚠ No hay datos para borrar.");
+    return;
+  }
+
+  localStorage.removeItem("usuarios");
   document.getElementById("resultado").innerHTML = "";
-  alert("Datos borrados correctamente");
+  document.getElementById("resultado").style.display = "none";
+  btnVer.textContent = "Ver Datos";
+  alert("✅ Datos borrados del LocalStorage.");
 });
